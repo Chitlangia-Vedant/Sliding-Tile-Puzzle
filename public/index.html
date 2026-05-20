@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>15-Puzzle WebAssembly</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Sliding Puzzle</h1>
+        <div class="controls">
+            <button id="btn-shuffle">Shuffle</button>
+            <button id="btn-solve">Auto-Solve</button>
+            <button id="btn-ida-solve" style="display: none;">IDA* Solve</button>
+        </div>
+        
+        <div id="board-container"></div>
+        <h2 id="status"></h2>
+    </div>
+
+    <script src="game.js"></script>
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>
