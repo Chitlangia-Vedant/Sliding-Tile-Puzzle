@@ -2,7 +2,9 @@
 
 #include <algorithm>
 
-#include "../include/Direction.h"
+// FIXED: Include the new unified core Direction architecture
+#include "../../core/Direction.h"
+
 namespace ida {
 std::vector<int> combine(const std::vector<std::vector<int>>& grids) {
     std::vector<int> solution(grids[0].size(), 0);
@@ -30,10 +32,11 @@ std::vector<std::array<bool, 4>> calcMoveList(int width, int height) {
 
     // Blank position
     for (int i = 0; i < width * height; i++) {
-        moves[i][static_cast<int>(Direction::U)] = (i / width) > 0;
-        moves[i][static_cast<int>(Direction::R)] = (i % width) < width - 1;
-        moves[i][static_cast<int>(Direction::D)] = (i / width) < height - 1;
-        moves[i][static_cast<int>(Direction::L)] = (i % width) > 0;
+        // FIXED: Create a temporary Direction object and cleanly map it to the array index
+        moves[i][Direction{Direction::up}.asIndex()] = (i / width) > 0;
+        moves[i][Direction{Direction::right}.asIndex()] = (i % width) < width - 1;
+        moves[i][Direction{Direction::down}.asIndex()] = (i / width) < height - 1;
+        moves[i][Direction{Direction::left}.asIndex()] = (i % width) > 0;
     }
 
     return moves;

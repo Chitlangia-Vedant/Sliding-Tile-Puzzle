@@ -1,34 +1,18 @@
 #include "../include/Idastar.h"
 
-#include "../include/Board.h"
-#include "../include/BoardRect.h"
+#include "../include/SearchNode.h"
+#include "../include/SearchNodeRect.h"
 #include "../include/Util.h"
+#include <limits> // NEW: Include limits for true infinity
 
-constexpr int INF = 1000;
+constexpr int INF = std::numeric_limits<int>::max();
+
 namespace ida {
 template <class B>
 Idastar<B>::Idastar() : path({}), minCost(INF), limit(0), nodes(0) {}
 
-Direction inverse(Direction move) {
-    switch (move) {
-        case Direction::U:
-            return Direction::D;
-        case Direction::L:
-            return Direction::R;
-        case Direction::D:
-            return Direction::U;
-        case Direction::R:
-            return Direction::L;
-        default:
-            assertm(0, "Unknown direction in inverse");
-    }
-}
-
 template <class B>
 std::vector<Direction> Idastar<B>::solve(const B& start) {
-    DEBUG("Running single threaded");
-    DEBUG("Solving: \n" << start);
-
     path.clear();
     nodes = 1;
     limit = start.getHeuristic();
@@ -45,19 +29,17 @@ std::vector<Direction> Idastar<B>::solve(const B& start) {
 
     while (path.empty()) {
         minCost = INF;
-        DEBUG(' ' << limit << ", " << nodes);
-
+        DEBUG("  " << limit << ", " << nodes);
         for (auto startDir : startMoves) {
             auto copy = start;
             copy.applyMove(startDir);
 
-            if (dfs(copy, 1, inverse(startDir))) {
+            if (dfs(copy, 1, -startDir)) {
                 path.push_back(startDir);
-                DEBUG("Nodes expanded: " << nodes);
+                DEBUG("  Final Nodes Expanded: " << nodes);
                 return path;
             }
         }
-
         limit = minCost;
     }
 
@@ -69,26 +51,21 @@ bool Idastar<B>::dfs(B& node, int g, Direction prevMove) {
     auto h = node.getHeuristic();
     auto f = g + h;
 
-    if (h == 0) [[unlikely]] {
-            // Found goal state (heuristic = 0)
-            return true;
-        }
+    if (h == 0) [[unlikely]] return true;
     else if (f > limit) {
-        // Exceeded search depth, store next smallest depth
-        if (f < minCost) {
-            minCost = f;
-        }
+        if (f < minCost) minCost = f;
         return false;
     }
 
     nodes += 1;
 
-    for (int i = 0; i < 4; i++) {
-        auto dir = static_cast<Direction>(i);
+    // NEW: Cleanly iterate over the unified directions array
+    for (const auto& dir : Direction::ALL_DIRS) {
         if (prevMove != dir && node.canMove(dir)) {
             auto prev = node.applyMove(dir);
 
-            if (dfs(node, g + 1, inverse(dir))) {
+            // NEW: Pass -dir to recursively invert
+            if (dfs(node, g + 1, -dir)) {
                 path.push_back(dir);
                 return true;
             }
@@ -96,10 +73,9 @@ bool Idastar<B>::dfs(B& node, int g, Direction prevMove) {
             node.undoMove(prev);
         }
     }
-
     return false;
 }
 
-template class Idastar<Board>;
-template class Idastar<BoardRect>;
+template class Idastar<SearchNode>;
+template class Idastar<SearchNodeRect>;
 }  // namespace ida

@@ -3,15 +3,13 @@
 #include <queue>
 #include <map>
 #include <algorithm>
+#include <unordered_map>
 
-Solver::Solver(Board board) : m_board{board} 
+Solver::Solver(Board board) : m_board{board}, m_locked(board.getWidth() * board.getHeight(), false)
 {
     int width = m_board.getWidth();
     int height = m_board.getHeight();
     int totalTiles = width * height;
-    
-    // Initialize the locked grid to match height (rows) and width (columns)
-    m_locked.resize(height, std::vector<bool>(width, false));
     
     // Pre-allocate the arrays for the maximum possible board space
     m_parent.resize(totalTiles, Point{-1, -1});
@@ -21,18 +19,18 @@ Solver::Solver(Board board) : m_board{board}
 }
 
 void Solver::lock(Point p) {
-    m_locked[p.getYcoord()][p.getXcoord()] = true;
+    m_locked[p.to1D(m_board.getWidth())] = true;
 }
 
-bool Solver::isLocked(Point p) const {
+bool Solver::isLocked(Point p) {
     if (p.getXcoord() < 0 || p.getXcoord() >= m_board.getWidth() ||
         p.getYcoord() < 0 || p.getYcoord() >= m_board.getHeight()) return true; 
-    return m_locked[p.getYcoord()][p.getXcoord()];
+    return m_locked[p.to1D(m_board.getWidth())];
 }
 
 void Solver::applyMove(Direction dir) {
-    if (m_board.moveTile(dir, "AutoSolver")) {
-        m_solution.push_back(dir);
+    if (m_board.moveTile(dir)) {
+        m_solution.push_back(dir);  
     }
 }
 
@@ -45,22 +43,27 @@ bool Solver::moveEmptyTo(Point target) {
 
     struct AStarNode {
         int f; 
+        int h;
         Point p;
-        bool operator>(const AStarNode& other) const { return f > other.f; } 
+        bool operator>(const AStarNode& other) const { 
+            if (f == other.f) return h > other.h; 
+            return f > other.f; 
+        } 
     };
 
     std::priority_queue<AStarNode, std::vector<AStarNode>, std::greater<AStarNode>> pq;
     
-    int startIdx = start.getYcoord() * width + start.getXcoord();
+    int startIdx = start.to1D(width);
     
     m_searchID[startIdx] = m_currentSearchID;
     m_parent[startIdx] = start;
     m_gScore[startIdx] = 0;
     
     int initial_h = std::abs(start.getXcoord() - target.getXcoord()) + std::abs(start.getYcoord() - target.getYcoord());
-    pq.push({initial_h, start});
+    
+    pq.push({initial_h, initial_h, start});
 
-    Direction dirs[] = {Direction::up, Direction::down, Direction::left, Direction::right};
+    // FIXED: Deleted the local dirs[] array
 
     while (!pq.empty()) {
         Point curr = pq.top().p;
@@ -68,13 +71,14 @@ bool Solver::moveEmptyTo(Point target) {
 
         if (curr == target) break;
 
-        int currIdx = curr.getYcoord() * width + curr.getXcoord();
+        int currIdx = curr.to1D(width);
 
-        for (Direction d : dirs) {
+        // FIXED: Cleanly iterate over the global direction array
+        for (const auto& d : Direction::ALL_DIRS) {
             Point next = curr.getAdjacentPoint(-d); 
             
             if (!isLocked(next)) {
-                int nextIdx = next.getYcoord() * width + next.getXcoord();
+                int nextIdx = next.to1D(width);
                 int tentative_g = m_gScore[currIdx] + 1; 
                 
                 if (m_searchID[nextIdx] != m_currentSearchID || tentative_g < m_gScore[nextIdx]) {
@@ -85,19 +89,20 @@ bool Solver::moveEmptyTo(Point target) {
                     m_gScore[nextIdx] = tentative_g;
                     
                     int h = std::abs(next.getXcoord() - target.getXcoord()) + std::abs(next.getYcoord() - target.getYcoord());
-                    pq.push({tentative_g + h, next});
+                    
+                    pq.push({tentative_g + h, h, next});
                 }
             }
         }
     }
 
-    int targetIdx = target.getYcoord() * width + target.getXcoord();
+    int targetIdx = target.to1D(width);
     if (m_searchID[targetIdx] != m_currentSearchID) return false; 
 
     std::vector<Direction> path;
     Point curr = target;
     while (curr != start) {
-        int currIdx = curr.getYcoord() * width + curr.getXcoord();
+        int currIdx = curr.to1D(width);
         path.push_back(m_dirTaken[currIdx]);
         curr = m_parent[currIdx]; 
     }
@@ -147,7 +152,7 @@ bool Solver::moveTileTo(int tileNum, Point target) {
             }
         }
         
-        m_locked[current.getYcoord()][current.getXcoord()] = false; 
+        m_locked[current.to1D(m_board.getWidth())] = false; 
 
         if (!emptyMoved) {
             return false; 
@@ -190,8 +195,8 @@ bool Solver::solveRow(int row, int colStart) {
             if (!moveEmptyTo(Point{width - 1, row + 1})) method1Success = false;
         }
         if (method1Success) {
-            m_locked[row][width - 2] = false;
-            m_locked[row + 1][width - 2] = false;
+            m_locked[row*m_board.getWidth() + (width - 2)] = false;
+            m_locked[(row + 1) * m_board.getWidth() + (width - 2)] = false;
 
             applyMove(Direction::down);
             applyMove(Direction::right);
@@ -219,8 +224,8 @@ bool Solver::solveRow(int row, int colStart) {
             if (!moveEmptyTo(Point{width - 2, row + 1})) method2Success = false;
         }
         if (method2Success) {
-            m_locked[row][width - 1] = false;
-            m_locked[row + 1][width - 1] = false;
+            m_locked[row * m_board.getWidth() + (width - 1)] = false;
+            m_locked[(row + 1) * m_board.getWidth() + (width - 1)] = false;
 
             applyMove(Direction::down);
             applyMove(Direction::left);
@@ -242,7 +247,6 @@ bool Solver::solveRow(int row, int colStart) {
             return false; 
         }
 
-        Logger::info("Both row macros failed. Flushing tiles out into the active grid...");
         m_board = boardBackup;
         m_locked = lockedBackup;
         m_solution = solutionBackup;
@@ -291,8 +295,8 @@ bool Solver::solveCol(int col, int rowStart) {
             if (!moveEmptyTo(Point{col + 1, height - 1})) method1Success = false;
         }
         if (method1Success) {
-            m_locked[height - 2][col] = false;
-            m_locked[height - 2][col + 1] = false;
+            m_locked[(height - 2) * m_board.getWidth() + col] = false;
+            m_locked[(height - 2) * m_board.getWidth() + (col + 1)] = false;
 
             applyMove(Direction::right); 
             applyMove(Direction::down);  
@@ -320,8 +324,8 @@ bool Solver::solveCol(int col, int rowStart) {
             if (!moveEmptyTo(Point{col + 1, height - 2})) method2Success = false;
         }
         if (method2Success) {
-            m_locked[height - 1][col] = false;
-            m_locked[height - 1][col + 1] = false;
+            m_locked[(height - 1) * m_board.getWidth() + col] = false;
+            m_locked[(height - 1) * m_board.getWidth() + (col + 1)] = false;
 
             applyMove(Direction::right); 
             applyMove(Direction::up);    
@@ -343,7 +347,6 @@ bool Solver::solveCol(int col, int rowStart) {
             return false; 
         }
 
-        Logger::info("Both column macros failed. Flushing tiles out into the active grid...");
         m_board = boardBackup;
         m_locked = lockedBackup;
         m_solution = solutionBackup;
@@ -487,6 +490,13 @@ std::vector<Direction> Solver::solve() {
                      " moves down to " + std::to_string(optimizedMoves) + " moves!");
     }
     
+    std::string sequence = "";
+    for (size_t i = 0; i < m_solution.size(); ++i) {
+        if (i > 0) sequence += ", ";
+        sequence += m_solution[i].toChar();
+    }
+    Logger::info("[Solver] Solution sequence: [" + sequence + "]");
+    
     Logger::info("[Solver] Final State: " + m_board.getBoardStateString());
     return m_solution;
 }
@@ -497,22 +507,26 @@ std::vector<Point> Solver::getTilePath(Point start, Point target) {
 
     struct AStarNode {
         int f;
+        int h;
         Point p;
-        bool operator>(const AStarNode& other) const { return f > other.f; }
+        bool operator>(const AStarNode& other) const { 
+            if (f == other.f) return h > other.h; 
+            return f > other.f; 
+        }
     };
     std::priority_queue<AStarNode, std::vector<AStarNode>, std::greater<AStarNode>> pq;
 
-    int startIdx = start.getYcoord() * width + start.getXcoord();
+    int startIdx = start.to1D(width);
     
     m_searchID[startIdx] = m_currentSearchID;
     m_parent[startIdx] = start;
     m_gScore[startIdx] = 0;
 
     int initial_h = std::abs(start.getXcoord() - target.getXcoord()) + std::abs(start.getYcoord() - target.getYcoord());
-    pq.push({initial_h, start});
+    
+    pq.push({initial_h, initial_h, start});
 
-    int dx[] = {0, 0, -1, 1};
-    int dy[] = {-1, 1, 0, 0};
+    // FIXED: Deleted archaic dx[] and dy[] arrays completely!
 
     while (!pq.empty()) {
         Point curr = pq.top().p;
@@ -520,13 +534,14 @@ std::vector<Point> Solver::getTilePath(Point start, Point target) {
 
         if (curr == target) break;
         
-        int currIdx = curr.getYcoord() * width + curr.getXcoord();
+        int currIdx = curr.to1D(width);
 
-        for (int i = 0; i < 4; ++i) {
-            Point next{curr.getXcoord() + dx[i], curr.getYcoord() + dy[i]};
+        // FIXED: Cleanly iterate over the unified direction array instead of a classic 0-to-3 integer loop
+        for (const auto& d : Direction::ALL_DIRS) {
+            Point next = curr.getAdjacentPoint(d); // Native offset calculation
             
             if (!isLocked(next)) {
-                int nextIdx = next.getYcoord() * width + next.getXcoord();
+                int nextIdx = next.to1D(width);
                 int tentative_g = m_gScore[currIdx] + 1;
                 
                 if (m_searchID[nextIdx] != m_currentSearchID || tentative_g < m_gScore[nextIdx]) {
@@ -536,20 +551,21 @@ std::vector<Point> Solver::getTilePath(Point start, Point target) {
                     m_gScore[nextIdx] = tentative_g;
                     
                     int h = std::abs(next.getXcoord() - target.getXcoord()) + std::abs(next.getYcoord() - target.getYcoord());
-                    pq.push({tentative_g + h, next});
+                    
+                    pq.push({tentative_g + h, h, next});
                 }
             }
         }
     }
     
-    int targetIdx = target.getYcoord() * width + target.getXcoord();
+    int targetIdx = target.to1D(width);
     if (m_searchID[targetIdx] != m_currentSearchID) return {}; 
     
     std::vector<Point> path;
     Point curr = target;
     while (curr != start) {
         path.push_back(curr);
-        curr = m_parent[curr.getYcoord() * width + curr.getXcoord()];
+        curr = m_parent[curr.to1D(width)];
     }
     std::reverse(path.begin(), path.end());
     return path;
@@ -565,7 +581,7 @@ bool Solver::macroShiftEmpty(Point tile, Point targetEmpty) {
     std::queue<Point> q;
     q.push(startEmpty);
     
-    int startIdx = startEmpty.getYcoord() * width + startEmpty.getXcoord();
+    int startIdx = startEmpty.to1D(width);
     m_searchID[startIdx] = m_currentSearchID;
     m_parent[startIdx] = startEmpty;
 
@@ -584,7 +600,7 @@ bool Solver::macroShiftEmpty(Point tile, Point targetEmpty) {
                 abs(next.getXcoord() - tile.getXcoord()) <= 1 && 
                 abs(next.getYcoord() - tile.getYcoord()) <= 1) 
             {
-                int nextIdx = next.getYcoord() * width + next.getXcoord();
+                int nextIdx = next.to1D(width);
                 
                 if (m_searchID[nextIdx] != m_currentSearchID) {
                     m_searchID[nextIdx] = m_currentSearchID; 
@@ -596,13 +612,13 @@ bool Solver::macroShiftEmpty(Point tile, Point targetEmpty) {
         }
     }
 
-    int targetIdx = targetEmpty.getYcoord() * width + targetEmpty.getXcoord();
+    int targetIdx = targetEmpty.to1D(width);
     if (m_searchID[targetIdx] != m_currentSearchID) return false; 
 
     std::vector<Direction> path;
     Point curr = targetEmpty;
     while (curr != startEmpty) {
-        int currIdx = curr.getYcoord() * width + curr.getXcoord();
+        int currIdx = curr.to1D(width);
         path.push_back(m_dirTaken[currIdx]);
         curr = m_parent[currIdx];
     }
@@ -630,27 +646,30 @@ void Solver::optimizeSolution(Board startBoard) {
         }
         m_solution = stack;
 
-        std::map<std::string, int> stateToIndex;
+        // FIXED: Switch from std::map<std::string, int> to std::unordered_map<uint64_t, int>
+        std::unordered_map<uint64_t, int> stateToIndex;
         std::vector<Direction> loopFree;
         Board simBoard = startBoard;
         
-        stateToIndex[simBoard.getBoardStateString()] = 0;
+        // FIXED: Use fast hash
+        stateToIndex[simBoard.getFastHash()] = 0;
         
         for (Direction d : m_solution) {
-            simBoard.moveTile(d, "Optimizer"); 
+            simBoard.moveTile(d); 
             loopFree.push_back(d);
             
-            std::string stateStr = simBoard.getBoardStateString();
+            // FIXED: Generate O(1) hash instead of allocating strings
+            uint64_t stateHash = simBoard.getFastHash();
             
-            if (stateToIndex.find(stateStr) != stateToIndex.end()) {
-                int loopStart = stateToIndex[stateStr];
+            if (stateToIndex.find(stateHash) != stateToIndex.end()) {
+                int loopStart = stateToIndex[stateHash];
                 loopFree.resize(loopStart); 
                 
                 m_solution = loopFree;
                 changed = true;
                 break; 
             } else {
-                stateToIndex[stateStr] = loopFree.size();
+                stateToIndex[stateHash] = loopFree.size();
             }
         }
     }

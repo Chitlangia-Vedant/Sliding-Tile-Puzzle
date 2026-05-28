@@ -1,6 +1,7 @@
 #include "Board.h"
 #include "Logger.h" // Include the logger
 #include <iostream>
+#include <sstream>
 #include <cassert>
 
 constexpr int g_consoleLines{ 25 };
@@ -25,13 +26,25 @@ Board::Board(int width, int height) : m_width{width}, m_height{height}, m_empty{
 }
 
 std::string Board::getBoardStateString() const {
-    std::string state = "[";
+    std::ostringstream oss;
+    oss << "[";
     for (size_t i = 0; i < m_board.size(); ++i) {
-        state += std::to_string(m_board[i].getNum());
-        if (i < m_board.size() - 1) state += ", ";
+        oss << m_board[i].getNum();
+        if (i < m_board.size() - 1) oss << ", ";
     }
-    state += "]";
-    return state;
+    oss << "]";
+    return oss.str();
+}
+
+uint64_t Board::getFastHash() const {
+    uint64_t hash = 0;
+    // Safely cap at 16 tiles (64 bits total) to prevent overflow on larger boards
+    size_t limit = std::min(m_board.size(), static_cast<size_t>(16));
+    for (size_t i = 0; i < limit; ++i) {
+        // Shift hash left by 4 bits and append the 4-bit tile number (0-15)
+        hash = (hash << 4) | (m_board[i].getNum() & 0xF);
+    }
+    return hash;
 }
 
 Tile& Board::operator()(int x, int y)
@@ -42,10 +55,10 @@ Tile& Board::operator()(int x, int y)
 
 Tile& Board::operator()(Point p)
 {
-    return (*this)(p.getXcoord(), p.getYcoord());
+    return m_board[p.to1D(m_width)];
 }
 
-bool Board::moveTile(Direction d, std::string source)
+bool Board::moveTile(Direction d)
 {
     Point p{ m_empty.getAdjacentPoint(-d) };
     
@@ -54,53 +67,41 @@ bool Board::moveTile(Direction d, std::string source)
     {
         return false;
     }
-    else    
-    {
-        // Capture the target coordinate before we overwrite it
-        int targetX = m_empty.getXcoord();
-        int targetY = m_empty.getYcoord();
-        
-        Tile temp{ (*this)(m_empty) };
-        (*this)(m_empty) = (*this)(p);
-        (*this)(p) = temp;
-        
-        // Find which tile was just moved into the empty space
-        int movedTileNum = (*this)(m_empty).getNum();
-        m_empty = p;
-        
-        // Map the Direction enum to a single character
-        char dirChar = '?';
-        switch(d.getDir()) {
-            case Direction::up: dirChar = 'U'; break;
-            case Direction::down: dirChar = 'D'; break;
-            case Direction::left: dirChar = 'L'; break;
-            case Direction::right: dirChar = 'R'; break;
-            default: dirChar = '?'; break;
-        }
-
-        // Format: [Source] [TileNum]->(x,y): D
-        Logger::debug("[" + source + "] [" + std::to_string(movedTileNum) + "]->(" + std::to_string(targetX) + "," + std::to_string(targetY) + "): " + dirChar);
-        
-        return true;
-    }
+    
+    Tile temp{ (*this)(m_empty) };
+    (*this)(m_empty) = (*this)(p);
+    (*this)(p) = temp;
+    
+    m_empty = p;
+    return true; // No more logging or strings here!
 }
 
 void Board::random(int x)
 {
-    // Log the initial state before modifying the board
-    Logger::info("Board Process: Starting shuffle. Initial state: " + getBoardStateString());
+    std::ostringstream startLog;
+    startLog << "Board Process: Starting shuffle. Initial state: " << getBoardStateString();
+    Logger::info(startLog.str());
+    
+    std::ostringstream sequence; // Use a stream instead of a string
     
     for(int i{0}; i < x; ) 
     {
-        Direction dir{};
-        // Pass "Shuffle" so the logger knows exactly what is driving the move
-        if (moveTile(dir, "Shuffle")) { 
+        Direction dir = Direction::getRandom();
+        
+        if (moveTile(dir)) { 
+            if (i > 0) sequence << ", ";
+            sequence << dir.toChar();
             i++; 
         }
     }
     
-    // Log the final scrambled state
-    Logger::info("Board Process: Shuffle sequence complete. Final state: " + getBoardStateString());
+    std::ostringstream seqLog;
+    seqLog << "Board Process: Shuffle sequence: [" << sequence.str() << "]";
+    Logger::info(seqLog.str());
+    
+    std::ostringstream endLog;
+    endLog << "Board Process: Shuffle sequence complete. Final state: " << getBoardStateString();
+    Logger::info(endLog.str());
 }
 
 bool Board::solved() const
@@ -132,8 +133,9 @@ int Board::getTileNum(int x, int y) const {
     return m_board[x + y * m_width].getNum();
 }
 
-int Board::getTileNum(Point p) const {
-    return getTileNum(p.getXcoord(), p.getYcoord());
+int Board::getTileNum(Point p) const
+{
+    return m_board[p.to1D(m_width)].getNum();
 }
 
 Point Board::findTile(int num) const {

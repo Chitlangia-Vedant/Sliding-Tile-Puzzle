@@ -1,4 +1,4 @@
-#include "../include/BoardRect.h"
+#include "../include/SearchNodeRect.h"
 
 #include <algorithm>
 #include <functional>
@@ -11,7 +11,7 @@
 
 // WIDTH < HEIGHT
 namespace ida {
-BoardRect::BoardRect(const std::vector<int>& g, int width, int height)
+SearchNodeRect::SearchNodeRect(const std::vector<int>& g, int width, int height)
     : WIDTH(width),
       HEIGHT(height),
       deltas({-width, 1, width, -1}),
@@ -20,49 +20,50 @@ BoardRect::BoardRect(const std::vector<int>& g, int width, int height)
       grid(g),
       patterns(DisjointDatabase::calculatePatterns(g)) {}
 
-int BoardRect::getHeuristic() const {
+int SearchNodeRect::getHeuristic() const {
     return DisjointDatabase::getHeuristic(patterns);
 }
 
-std::vector<Direction> BoardRect::getMoves() const {
+std::vector<Direction> SearchNodeRect::getMoves() const {
     if (blank < WIDTH) {           // top
         if (blank % WIDTH == 0) {  // left
-            return {Direction::R, Direction::D};
+            return {Direction::right, Direction::down};
         }
         if (blank % WIDTH == WIDTH - 1) {  // right
-            return {Direction::D, Direction::L};
+            return {Direction::down, Direction::left};
         }
-        return {Direction::R, Direction::D, Direction::L};
+        return {Direction::right, Direction::down, Direction::left};
     }
     if (blank >= (WIDTH - 1) * HEIGHT) {  // bottom
         if (blank % WIDTH == 0) {         // left
-            return {Direction::U, Direction::R};
+            return {Direction::up, Direction::right};
         }
         if (blank % WIDTH == WIDTH - 1) {  // right
-            return {Direction::U, Direction::L};
+            return {Direction::up, Direction::left};
         }
-        return {Direction::U, Direction::R, Direction::L};
+        return {Direction::up, Direction::right, Direction::left};
     }
     if (blank % WIDTH == 0) {  // left
-        return {Direction::U, Direction::R, Direction::D};
+        return {Direction::up, Direction::right, Direction::down};
     }
     if (blank % WIDTH == WIDTH - 1) {  // right
-        return {Direction::U, Direction::D, Direction::L};
+        return {Direction::up, Direction::down, Direction::left};
     }
 
-    return {Direction::U, Direction::R, Direction::D, Direction::L};
+    return {Direction::up, Direction::right, Direction::down, Direction::left};
 }
 
-inline int BoardRect::getTile(int posn) const { return grid[posn]; }
+inline int SearchNodeRect::getTile(int posn) const { return grid[posn]; }
 
-inline void BoardRect::setTile(int posn, int tile) { grid[posn] = tile; }
+inline void SearchNodeRect::setTile(int posn, int tile) { grid[posn] = tile; }
 
-bool BoardRect::canMove(Direction dir) {
-    return canMoveList[blank][static_cast<int>(dir)];
+bool SearchNodeRect::canMove(Direction dir) {
+    // FIXED: Use asIndex() instead of static_cast
+    return canMoveList[blank][dir.asIndex()];
 }
 
-inline int BoardRect::getDelta(const std::vector<int>& g, int tile,
-                               int offset) const {
+inline int SearchNodeRect::getDelta(const std::vector<int>& g, int tile,
+                                    int offset) const {
     // Which pattern the sliding tile is in
     const auto index = DisjointDatabase::where[tile];
     const auto delta = DisjointDatabase::tileDeltas[tile];
@@ -80,9 +81,10 @@ inline int BoardRect::getDelta(const std::vector<int>& g, int tile,
 }
 
 // Pattern ID, pattern index
-BoardRect::MoveState BoardRect::applyMove(Direction dir) {
+SearchNodeRect::MoveState SearchNodeRect::applyMove(Direction dir) {
+    // FIXED: Use asIndex()
     // Position of sliding tile (and new blank)
-    const auto newBlank = blank + deltas[static_cast<int>(dir)];
+    const auto newBlank = blank + deltas[dir.asIndex()];
     // Value of sliding tile
     const auto tile = getTile(newBlank);
 
@@ -94,18 +96,21 @@ BoardRect::MoveState BoardRect::applyMove(Direction dir) {
         DisjointDatabase::where[tile];  // Which pattern the sliding tile is in
     const auto oldPattern = patterns[index];  // Storing for undo
 
-    switch (dir) {
-        case Direction::U:
+    // FIXED: Check core direction type natively
+    switch (dir.getDir()) {
+        case Direction::up:
             patterns[index] += getDelta(grid, tile, newBlank);
             break;
-        case Direction::R:
+        case Direction::right:
             patterns[index] -= DisjointDatabase::tileDeltas[tile];
             break;
-        case Direction::D:
+        case Direction::down:
             patterns[index] -= getDelta(grid, tile, blank);
             break;
-        case Direction::L:
+        case Direction::left:
             patterns[index] += DisjointDatabase::tileDeltas[tile];
+            break;
+        case Direction::x:  // NEW: Silences the -Wswitch compiler warning
             break;
     }
 
@@ -116,7 +121,7 @@ BoardRect::MoveState BoardRect::applyMove(Direction dir) {
     return {oldPattern, oldBlank};
 }
 
-void BoardRect::undoMove(const BoardRect::MoveState& prev) {
+void SearchNodeRect::undoMove(const SearchNodeRect::MoveState& prev) {
     const auto& [pattern, newBlank] = prev;
 
     // Value of sliding tile
@@ -133,14 +138,14 @@ void BoardRect::undoMove(const BoardRect::MoveState& prev) {
     blank = newBlank;
 }
 
-std::ostream& operator<<(std::ostream& out, const BoardRect& board) {
-    for (int y = 0; y < board.HEIGHT; y++) {
-        for (int x = 0; x < board.WIDTH; x++) {
-            int i = y * board.WIDTH + x;
-            if (i == board.blank) {
+std::ostream& operator<<(std::ostream& out, const SearchNodeRect& node) {
+    for (int y = 0; y < node.HEIGHT; y++) {
+        for (int x = 0; x < node.WIDTH; x++) {
+            int i = y * node.WIDTH + x;
+            if (i == node.blank) {
                 out << std::setw(3) << 0;
             } else {
-                out << std::setw(3) << board.getTile(i);
+                out << std::setw(3) << node.getTile(i);
             }
         }
         out << std::endl;

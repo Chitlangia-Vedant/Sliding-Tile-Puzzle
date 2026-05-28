@@ -11,7 +11,7 @@ public:
     Tile(int x);
     
     bool isEmpty() const;
-    int getNum() const;
+    [[nodiscard]] int getNum() const { return m_tile; }
     
 };
 #endif

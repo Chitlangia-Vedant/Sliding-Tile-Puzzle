@@ -1,4 +1,4 @@
-#include "../include/Board.h"
+#include "../include/SearchNode.h"
 
 #include <algorithm>
 #include <functional>
@@ -9,7 +9,7 @@
 #include "../include/Util.h"
 #include "../include/WalkingDistance.h"
 namespace ida {
-Board::Board(const std::vector<int>& g, int width, int height)
+SearchNode::SearchNode(const std::vector<int>& g, int width, int height)
     : WIDTH(width),
       HEIGHT(height),
       deltas({-width, 1, width, -1}),
@@ -29,56 +29,44 @@ Board::Board(const std::vector<int>& g, int width, int height)
     mirrPatterns = DisjointDatabase::calculatePatterns(mirrGrid);
 }
 
-int Board::getHeuristic() const {
+int SearchNode::getHeuristic() const {
     return std::max(std::max(DisjointDatabase::getHeuristic(patterns),
                              DisjointDatabase::getHeuristic(mirrPatterns)),
                     WalkingDistance::costs[wdRowIndex] +
                         WalkingDistance::costs[wdColIndex]);
 }
 
-std::vector<Direction> Board::getMoves() const {
-    if (blank < WIDTH) {           // top
-        if (blank % WIDTH == 0) {  // left
-            return {Direction::R, Direction::D};
-        }
-        if (blank % WIDTH == WIDTH - 1) {  // right
-            return {Direction::D, Direction::L};
-        }
-        return {Direction::R, Direction::D, Direction::L};
+std::vector<Direction> SearchNode::getMoves() const {
+    if (blank < WIDTH) {           
+        if (blank % WIDTH == 0) return {Direction::right, Direction::down};
+        if (blank % WIDTH == WIDTH - 1) return {Direction::down, Direction::left};
+        return {Direction::right, Direction::down, Direction::left};
     }
-    if (blank >= (WIDTH - 1) * HEIGHT) {  // bottom
-        if (blank % WIDTH == 0) {         // left
-            return {Direction::U, Direction::R};
-        }
-        if (blank % WIDTH == WIDTH - 1) {  // right
-            return {Direction::U, Direction::L};
-        }
-        return {Direction::U, Direction::R, Direction::L};
+    if (blank >= (WIDTH - 1) * HEIGHT) {  
+        if (blank % WIDTH == 0) return {Direction::up, Direction::right};
+        if (blank % WIDTH == WIDTH - 1) return {Direction::up, Direction::left};
+        return {Direction::up, Direction::right, Direction::left};
     }
-    if (blank % WIDTH == 0) {  // left
-        return {Direction::U, Direction::R, Direction::D};
-    }
-    if (blank % WIDTH == WIDTH - 1) {  // right
-        return {Direction::U, Direction::D, Direction::L};
-    }
+    if (blank % WIDTH == 0) return {Direction::up, Direction::right, Direction::down};
+    if (blank % WIDTH == WIDTH - 1) return {Direction::up, Direction::down, Direction::left};
 
-    return {Direction::U, Direction::R, Direction::D, Direction::L};
+    return {Direction::up, Direction::right, Direction::down, Direction::left};
 }
 
-inline int Board::getTile(int posn) const { return grid[posn]; }
+inline int SearchNode::getTile(int posn) const { return grid[posn]; }
 
-inline void Board::setTile(int posn, int tile) { grid[posn] = tile; }
+inline void SearchNode::setTile(int posn, int tile) { grid[posn] = tile; }
 
-inline int Board::getMirrTile(int posn) const { return mirrGrid[posn]; }
+inline int SearchNode::getMirrTile(int posn) const { return mirrGrid[posn]; }
 
-inline void Board::setMirrTile(int posn, int tile) { mirrGrid[posn] = tile; }
+inline void SearchNode::setMirrTile(int posn, int tile) { mirrGrid[posn] = tile; }
 
-bool Board::canMove(Direction dir) {
-    return canMoveList[blank][static_cast<int>(dir)];
+bool SearchNode::canMove(Direction dir) {
+    return canMoveList[blank][dir.asIndex()]; 
 }
 
-inline int Board::getDelta(const std::vector<int>& g, int tile,
-                           int offset) const {
+inline int SearchNode::getDelta(const std::vector<int>& g, int tile,
+                                int offset) const {
     // Which pattern the sliding tile is in
     const auto index = DisjointDatabase::where[tile];
     const auto delta = DisjointDatabase::tileDeltas[tile];
@@ -96,10 +84,9 @@ inline int Board::getDelta(const std::vector<int>& g, int tile,
 }
 
 // Pattern ID, pattern index
-Board::MoveState Board::applyMove(Direction dir) {
+SearchNode::MoveState SearchNode::applyMove(Direction dir) {
     // Position of sliding tile (and new blank)
-    const auto newBlank = blank + deltas[static_cast<int>(dir)];
-    // Value of sliding tile
+    const auto newBlank = blank + deltas[dir.asIndex()];
     const auto tile = getTile(newBlank);
 
     // Set value of slid tile
@@ -122,35 +109,28 @@ Board::MoveState Board::applyMove(Direction dir) {
     const auto prevRowIndex = wdRowIndex;
     const auto prevColIndex = wdColIndex;
 
-    switch (dir) {
-        case Direction::U:
+    switch (dir.getDir()) {
+        case Direction::up:
             patterns[index] += getDelta(grid, tile, newBlank);
-            wdRowIndex = WalkingDistance::edgesDown[wdRowIndex]
-                                                   [WalkingDistance::row[tile]];
-            // Mirrored L
+            wdRowIndex = WalkingDistance::edgesDown[wdRowIndex][WalkingDistance::row[tile]];
             mirrPatterns[mirrIndex] += DisjointDatabase::tileDeltas[mirrTile];
             break;
-        case Direction::R:
+        case Direction::right:
             patterns[index] -= DisjointDatabase::tileDeltas[tile];
-            wdColIndex = WalkingDistance::edgesUp[wdColIndex]
-                                                 [WalkingDistance::col[tile]];
-            // Mirrored D
+            wdColIndex = WalkingDistance::edgesUp[wdColIndex][WalkingDistance::col[tile]];
             mirrPatterns[mirrIndex] -= getDelta(mirrGrid, mirrTile, mirrBlank);
             break;
-        case Direction::D:
+        case Direction::down:
             patterns[index] -= getDelta(grid, tile, blank);
-            wdRowIndex = WalkingDistance::edgesUp[wdRowIndex]
-                                                 [WalkingDistance::row[tile]];
-            // Mirrored R
+            wdRowIndex = WalkingDistance::edgesUp[wdRowIndex][WalkingDistance::row[tile]];
             mirrPatterns[mirrIndex] -= DisjointDatabase::tileDeltas[mirrTile];
             break;
-        case Direction::L:
+        case Direction::left:
             patterns[index] += DisjointDatabase::tileDeltas[tile];
-            wdColIndex = WalkingDistance::edgesDown[wdColIndex]
-                                                   [WalkingDistance::col[tile]];
-            // Mirrored U
-            mirrPatterns[mirrIndex] +=
-                getDelta(mirrGrid, mirrTile, mirrNewBlank);
+            wdColIndex = WalkingDistance::edgesDown[wdColIndex][WalkingDistance::col[tile]];
+            mirrPatterns[mirrIndex] += getDelta(mirrGrid, mirrTile, mirrNewBlank);
+            break;
+        case Direction::x:  // NEW: Silences the -Wswitch compiler warning
             break;
     }
 
@@ -161,7 +141,7 @@ Board::MoveState Board::applyMove(Direction dir) {
     return {oldPattern, oldMirrPattern, prevRowIndex, prevColIndex, oldBlank};
 }
 
-void Board::undoMove(const Board::MoveState& prev) {
+void SearchNode::undoMove(const SearchNode::MoveState& prev) {
     const auto& [pattern, mirrPattern, prevRowIndex, prevColIndex, newBlank] =
         prev;
 
@@ -191,14 +171,14 @@ void Board::undoMove(const Board::MoveState& prev) {
     wdColIndex = prevColIndex;
 }
 
-std::ostream& operator<<(std::ostream& out, const Board& board) {
-    for (int y = 0; y < board.HEIGHT; y++) {
-        for (int x = 0; x < board.WIDTH; x++) {
-            int i = y * board.WIDTH + x;
-            if (i == board.blank) {
+std::ostream& operator<<(std::ostream& out, const SearchNode& node) {
+    for (int y = 0; y < node.HEIGHT; y++) {
+        for (int x = 0; x < node.WIDTH; x++) {
+            int i = y * node.WIDTH + x;
+            if (i == node.blank) {
                 out << std::setw(3) << 0;
             } else {
-                out << std::setw(3) << board.getTile(i);
+                out << std::setw(3) << node.getTile(i);
             }
         }
         out << std::endl;

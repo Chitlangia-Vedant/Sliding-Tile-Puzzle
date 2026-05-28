@@ -12,7 +12,7 @@ export class Solver {
         const moves = this.puzzle.autoSolve();
         
         for (let moveDir of moves) {
-            this.puzzle.move(moveDir);
+            this.puzzle.applyMove(moveDir);
             this.board.render();
             await new Promise(r => setTimeout(r, 80)); // 80ms animation delay
         }

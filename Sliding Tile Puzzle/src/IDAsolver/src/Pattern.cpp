@@ -2,6 +2,7 @@
 
 #include <numeric>
 #include <unordered_map>
+
 namespace ida {
 PatternGroup::PatternGroup(const std::vector<int>& grid, int width, int height)
     : WIDTH(width), HEIGHT(height), deltas(width * height, 1) {
@@ -59,17 +60,20 @@ bool PatternGroup::canShift(const Pattern& pattern, int tile,
                             Direction dir) const {
     auto posn = pattern.pos[tile];
 
-    switch (dir) {
-        case Direction::U:
+    // FIXED: Use dir.getDir() and core direction enums
+    switch (dir.getDir()) {
+        case Direction::up:
             return (posn >= WIDTH && getCell(pattern, posn - WIDTH) == 0);
-        case Direction::R:
+        case Direction::right:
             return (posn % WIDTH < WIDTH - 1 &&
                     getCell(pattern, posn + 1) == 0);
-        case Direction::D:
+        case Direction::down:
             return (posn < WIDTH * (HEIGHT - 1) &&
                     getCell(pattern, posn + WIDTH) == 0);
-        default:
+        case Direction::left:
             return (posn % WIDTH > 0 && getCell(pattern, posn - 1) == 0);
+        default:
+            return false;
     }
 }
 
@@ -94,28 +98,31 @@ Pattern PatternGroup::shiftCell(Pattern next, int tile, Direction dir) {
     // Clear tile
     setCell(next, posn, 0);
 
-    switch (dir) {
-        case Direction::U: {
+    // FIXED: Use dir.getDir() and core direction enums
+    switch (dir.getDir()) {
+        case Direction::up: {
             posn -= WIDTH;
             setCell(next, posn, tile);
             next.id -= getDelta(next, tile, posn);
             break;
         }
-        case Direction::R:
+        case Direction::right:
             posn++;
             setCell(next, posn, tile);
             next.id += deltas[tile];
             break;
-        case Direction::D: {
+        case Direction::down: {
             posn += WIDTH;
             setCell(next, posn, tile);
             next.id += getDelta(next, tile, posn - WIDTH);
             break;
         }
-        case Direction::L:
+        case Direction::left:
             posn--;
             setCell(next, posn, tile);
             next.id -= deltas[tile];
+            break;
+        case Direction::x: 
             break;
     }
 

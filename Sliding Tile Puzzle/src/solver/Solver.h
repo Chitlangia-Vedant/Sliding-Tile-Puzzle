@@ -10,7 +10,7 @@ class Solver
 {
 private:
     Board m_board;
-    std::vector<std::vector<bool>> m_locked;
+    std::vector<bool> m_locked;
     std::vector<Direction> m_solution;
 
     std::vector<Point> m_parent;    
@@ -21,7 +21,7 @@ private:
     int m_currentSearchID = 0;
 
     void lock(Point p);
-    bool isLocked(Point p) const;
+    bool isLocked(Point p);
     
     // Core routing algorithms
     bool moveEmptyTo(Point target);

@@ -5,6 +5,7 @@
 #include "IdaBridge.h"
 #include <vector>
 #include <string>
+#include <sstream>
 
 using namespace emscripten;
 
@@ -13,64 +14,56 @@ private:
     Board m_board;
 
 public:
-    // Update constructor to take width and height
     WebGame(int width, int height) : m_board(width, height) {
-        Logger::info("WebGame initialized with board size: " + std::to_string(width) + "x" + std::to_string(height));
+        std::ostringstream oss;
+        oss << "WebGame initialized with board size: " << width << "x" << height;
+        Logger::info(oss.str());
     }
 
-    void shuffle(int moves) {
-        Logger::info("UI EVENT: Shuffle button pressed.");
-        m_board.random(moves);
-        Logger::info("UI EVENT: Shuffle sequence completely finished.");
+    void shuffle(int moves) { m_board.random(moves); }
+
+    bool move(int dirInt) { 
+        Direction d{dirInt};
+        Point empty = m_board.getEmptyPoint();
+        Point target = empty.getAdjacentPoint(-d);
+        
+        if (target.getXcoord() < 0 || target.getXcoord() >= m_board.getWidth() ||
+            target.getYcoord() < 0 || target.getYcoord() >= m_board.getHeight()) {
+            return false;
+        }
+
+        int tileNum = m_board.getTileNum(target.getXcoord(), target.getYcoord());
+        int targetX = empty.getXcoord();
+        int targetY = empty.getYcoord();
+        
+        bool success = m_board.moveTile(d);
+        if (success) {
+            std::ostringstream oss;
+            oss << "[Manual] [" << tileNum << "]->(" << targetX << "," << targetY << "): " << d.toChar();
+            Logger::debug(oss.str());
+        }
+        return success;
     }
 
-    bool move(int dirInt) {
-        Direction dir{dirInt};
-        return m_board.moveTile(dir);
+    bool applyMove(int dirInt) {
+        return m_board.moveTile(Direction{dirInt});
     }
-
-    int getTile(int x, int y) {
-        return m_board.getTileNum(x, y);
-    }
-
-    // Replace getSize with getWidth and getHeight
+    int getTile(int x, int y) { return m_board.getTileNum(x, y); }
     int getWidth() const { return m_board.getWidth(); }
     int getHeight() const { return m_board.getHeight(); }
-
-    bool isSolved() {
-        return m_board.solved();
-    }
+    bool isSolved() { return m_board.solved(); }
 
     std::vector<int> autoSolve() {
-        Logger::info("UI EVENT: Auto-Solve button pressed.");
-        
         Solver solver{m_board};
         std::vector<Direction> solutionDirs = solver.solve();
-        
-        Logger::info("UI EVENT: Auto-Solve complete. Handing solution vector back to JavaScript.");
-        
         std::vector<int> jsSolution;
-        for (Direction d : solutionDirs) {
-            jsSolution.push_back(d.getDir());
-        }
+        for (Direction d : solutionDirs) jsSolution.push_back(d.getDir());
         return jsSolution;
     }
-    void initIdaSolver(std::string dbName, std::vector<std::vector<int>> patterns) {
-        Logger::info("Initializing IDA* databases...");
-        initIda(dbName, m_board.getWidth(), m_board.getHeight(), patterns);
-    }
 
-    // NEW: Function to execute the IDA solver
-    std::vector<int> idaSolve() {
-        Logger::info("UI EVENT: IDA* Auto-Solve button pressed.");
-        std::vector<int> grid = m_board.toSolverGrid();
-        
-        std::vector<int> solutionDirs = runIda(grid, m_board.getWidth(), m_board.getHeight());
-        
-        if(solutionDirs.empty() && !m_board.solved()) {
-             Logger::warn("IDA* Solver reported puzzle as unsolvable or already solved.");
-        }
-        return solutionDirs;
+    // NEW: Get the current grid state to send to the Web Worker
+    std::vector<int> getGrid() const {
+        return m_board.toSolverGrid();
     }
 };
 
@@ -80,14 +73,18 @@ EMSCRIPTEN_BINDINGS(my_game_module) {
     register_vector<std::vector<int>>("VectorVectorInt");
 
     class_<WebGame>("WebGame")
-        .constructor<int, int>() // Now takes two integers!
+        .constructor<int, int>()
         .function("shuffle", &WebGame::shuffle)
         .function("move", &WebGame::move)
+        .function("applyMove", &WebGame::applyMove)
         .function("getTile", &WebGame::getTile)
         .function("getWidth", &WebGame::getWidth)
         .function("getHeight", &WebGame::getHeight)
         .function("isSolved", &WebGame::isSolved)
         .function("autoSolve", &WebGame::autoSolve)
-        .function("initIdaSolver", &WebGame::initIdaSolver)
-        .function("idaSolve", &WebGame::idaSolve);
+        .function("getGrid", &WebGame::getGrid); // Bound for main thread
+
+    // NEW: Expose standalone IDA bridge functions for the Web Worker
+    function("initIda", &initIda);
+    function("runIda", &runIda);
 }

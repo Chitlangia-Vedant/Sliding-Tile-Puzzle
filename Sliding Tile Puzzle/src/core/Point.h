@@ -1,18 +1,25 @@
 #ifndef POINT_H
 #define POINT_H
 #include "Direction.h"
+
 class Point
 {
 private:
-    int m_xcoord;
-    int m_ycoord;
+    int m_x{};
+    int m_y{};
 public:
-    Point(int x,int y);
-    Point(); 
-    int getXcoord() const;
-    int getYcoord() const;
-    Point getAdjacentPoint(Direction x) const;
-    friend bool operator==(const Point& a,const Point& b);
-    friend bool operator!=(const Point& a,const Point& b);
+    Point();
+    Point(int x, int y);
+    
+    [[nodiscard]] int getXcoord() const;
+    [[nodiscard]] int getYcoord() const;
+    
+    [[nodiscard]] inline int to1D(int width) const { return m_y * width + m_x; }
+
+    [[nodiscard]] Point getAdjacentPoint(Direction d) const;
+    
+    [[nodiscard]] bool operator==(Point p) const;
+    [[nodiscard]] bool operator!=(Point p) const;
 };
+
 #endif

@@ -5,7 +5,8 @@
 #include <unordered_map>
 #include <vector>
 
-#include "Direction.h"
+#include "../../core/Direction.h"
+
 namespace ida {
 // Minimal state info
 struct Pattern {

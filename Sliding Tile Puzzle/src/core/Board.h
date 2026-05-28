@@ -3,6 +3,7 @@
 #include <iostream>
 #include <vector>
 #include <string> // NEW: Required for string manipulation
+#include <cstdint>
 #include "Tile.h"
 #include "Direction.h"
 #include "Point.h"
@@ -19,16 +20,17 @@ public:
     Board(int width, int height);
     Tile& operator()(int x, int y);
     Tile& operator()(Point p);
-    bool moveTile(Direction d, std::string source = "Manual");
+    bool moveTile(Direction d);
     void random(int x);
-    bool solved() const;
-    int getWidth() const;
-    int getHeight() const;
-    Point getEmptyPoint() const;
-    int getTileNum(int x, int y) const;
-    int getTileNum(Point p) const;
+    [[nodiscard]] bool solved() const;
+    [[nodiscard]] int getWidth() const { return m_width; }
+    [[nodiscard]] int getHeight() const { return m_height; }
+    [[nodiscard]] Point getEmptyPoint() const { return m_empty; }
+    [[nodiscard]] int getTileNum(int x, int y) const;
+    [[nodiscard]] int getTileNum(Point p) const;
     Point findTile(int num) const;
-    std::string getBoardStateString() const;
-    std::vector<int> toSolverGrid() const;
+    [[nodiscard]] std::string getBoardStateString() const;
+    [[nodiscard]] uint64_t getFastHash() const;
+    [[nodiscard]] std::vector<int> toSolverGrid() const;
 };
 #endif

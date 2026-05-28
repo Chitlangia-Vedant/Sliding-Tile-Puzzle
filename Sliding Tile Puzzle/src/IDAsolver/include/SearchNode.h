@@ -1,21 +1,15 @@
 
-#ifndef BOARDRECT_H
-#define BOARDRECT_H
+#ifndef SEARCHNODE_H
+#define SEARCHNODE_H
 
 #include <array>
 #include <ostream>
 #include <vector>
 
-#include "Direction.h"
+#include "../../core/Direction.h"
 #include "DisjointDatabase.h"
-
-/*
-    Rectangular board
-    - No mirror
-    - No walking distance
-*/
 namespace ida {
-class BoardRect {
+class SearchNode {
     const int WIDTH;
     const int HEIGHT;
 
@@ -27,23 +21,34 @@ class BoardRect {
 
     // Tiles
     int blank;  // Position of blank (since patterns don't store the blank)
-    std::vector<int> grid;  // Value to position mapping
+    std::vector<int> grid;      // Value to position mapping
+    std::vector<int> mirrGrid;  // Mirrored grid
 
     // Used for disjoint database
-    std::vector<int> patterns;  // Pattern IDs
+    std::vector<int> patterns;      // Pattern IDs
+    std::vector<int> mirrPatterns;  // Mirrored pattern IDs
+
+    // Used for walking distance
+    int wdRowIndex;  // Chunk by row (1 2 3 4 / ...)
+    int wdColIndex;  // Chunk by col (1 5 8 13 / ...)
 
     int getTile(int posn) const;
     void setTile(int posn, int tile);
+    int getMirrTile(int posn) const;
+    void setMirrTile(int posn, int tile);
 
     int getDelta(const std::vector<int>& g, int tile, int offset) const;
 
     struct MoveState {
         int pattern;
+        int mirrPattern;
+        int rowIndex;
+        int colIndex;
         int blank;
     };
 
 public:
-    BoardRect(const std::vector<int>& g, int width, int height);
+    SearchNode(const std::vector<int>& g, int width, int height);
 
     int getHeuristic() const;
     bool canMove(Direction dir);
@@ -52,8 +57,7 @@ public:
     MoveState applyMove(Direction dir);
     void undoMove(const MoveState& prev);
 
-    friend std::ostream& operator<<(std::ostream& out, const BoardRect& board);
+    friend std::ostream& operator<<(std::ostream& out, const SearchNode& node);
 };
 }  // namespace ida
-#endif  // BOARDRECT_H
-
+#endif  // SEARCHNODE_H
