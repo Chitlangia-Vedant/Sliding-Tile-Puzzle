@@ -1,2 +1,18 @@
-/Sliding Tile Puzzle/src/IDAsolver/src/test_ida.cpp
-improvements.txt
+/src/IDAsolver/src/test_ida.cpp
+node_modules/
+.next/
+out/
+dist/
+build/
+*.log
+.DS_Store
+.env.local
+.env.*.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
