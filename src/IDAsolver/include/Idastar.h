@@ -4,7 +4,7 @@
 
 #include <vector>
 
-#include "Direction.h"
+#include "../../core/Direction.h"
 
 namespace ida {
 

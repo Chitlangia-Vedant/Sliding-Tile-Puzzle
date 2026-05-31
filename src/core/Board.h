@@ -21,8 +21,13 @@ public:
     Tile& operator()(int x, int y);
     Tile& operator()(Point p);
     bool moveTile(Direction d);
+    int moveTileAt(int x, int y);
+    int moveTileNumber(int tile);
     void random(int x);
     [[nodiscard]] bool solved() const;
+    [[nodiscard]] bool isTileCorrect(int x, int y) const;
+    [[nodiscard]] bool isTileCorrect(int t) const;
+    [[nodiscard]] std::vector<int> getCorrectTiles() const;
     [[nodiscard]] int getWidth() const { return m_width; }
     [[nodiscard]] int getHeight() const { return m_height; }
     [[nodiscard]] Point getEmptyPoint() const { return m_empty; }
@@ -32,5 +37,8 @@ public:
     [[nodiscard]] std::string getBoardStateString() const;
     [[nodiscard]] uint64_t getFastHash() const;
     [[nodiscard]] std::vector<int> toSolverGrid() const;
+    bool setGrid(const std::vector<int>& grid);
+    [[nodiscard]] bool isSolvable() const;
+    [[nodiscard]] static bool isSolvable(const std::vector<int>& grid, int width, int height);
 };
 #endif

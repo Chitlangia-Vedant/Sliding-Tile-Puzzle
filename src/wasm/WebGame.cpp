@@ -45,13 +45,47 @@ public:
         return success;
     }
 
+    int moveTileAt(int x, int y) {
+        int tileNum = m_board.getTileNum(x, y);
+        Point empty = m_board.getEmptyPoint();
+        
+        int dirInt = m_board.moveTileAt(x, y);
+        
+        // If dirInt is not 0, the move was successful
+        if (dirInt != 0) {
+            Direction d{dirInt}; // Cast back to Direction to use toChar()
+            std::ostringstream oss;
+            oss << "[Manual] [" << tileNum << "]->(" << empty.getXcoord() << "," << empty.getYcoord() << "): " << d.toChar();
+            Logger::debug(oss.str());
+        }
+        return dirInt;
+    }
+
+    int moveTileNumber(int tile) {
+        Point empty = m_board.getEmptyPoint();
+        
+        int dirInt = m_board.moveTileNumber(tile);
+        
+        if (dirInt != 0) {
+            Direction d{dirInt}; // Cast back to Direction to use toChar()
+            std::ostringstream oss;
+            oss << "[Manual] [" << tile << "]->(" << empty.getXcoord() << "," << empty.getYcoord() << "): " << d.toChar();
+            Logger::debug(oss.str());
+        }
+        return dirInt;
+    }
+
     bool applyMove(int dirInt) {
         return m_board.moveTile(Direction{dirInt});
     }
     int getTile(int x, int y) { return m_board.getTileNum(x, y); }
     int getWidth() const { return m_board.getWidth(); }
     int getHeight() const { return m_board.getHeight(); }
+    bool isSolvable() const { return m_board.isSolvable(); }
     bool isSolved() { return m_board.solved(); }
+    bool isTileCorrectAt(int x, int y) const { return m_board.isTileCorrect(x, y); }
+    bool isTileCorrectNumber(int t) const { return m_board.isTileCorrect(t); }
+    std::vector<int> getCorrectTiles() const { return m_board.getCorrectTiles(); }
 
     std::vector<int> autoSolve() {
         Solver solver{m_board};
@@ -65,6 +99,9 @@ public:
     std::vector<int> getGrid() const {
         return m_board.toSolverGrid();
     }
+    bool setGrid(const std::vector<int>& grid) {
+    return m_board.setGrid(grid);
+}
 };
 
 // --- Emscripten Binding Block ---
@@ -82,8 +119,14 @@ EMSCRIPTEN_BINDINGS(my_game_module) {
         .function("getHeight", &WebGame::getHeight)
         .function("isSolved", &WebGame::isSolved)
         .function("autoSolve", &WebGame::autoSolve)
-        .function("getGrid", &WebGame::getGrid); // Bound for main thread
-
+        .function("getGrid", &WebGame::getGrid)
+        .function("setGrid", &WebGame::setGrid)
+        .function("isSolvable", &WebGame::isSolvable) // Bound for main thread
+        .function("moveTileAt", &WebGame::moveTileAt)
+        .function("moveTileNumber", &WebGame::moveTileNumber)
+        .function("isTileCorrectAt", &WebGame::isTileCorrectAt)
+        .function("isTileCorrectNumber", &WebGame::isTileCorrectNumber)
+        .function("getCorrectTiles", &WebGame::getCorrectTiles);
     // NEW: Expose standalone IDA bridge functions for the Web Worker
     function("initIda", &initIda);
     function("runIda", &runIda);

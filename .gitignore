@@ -1,2 +1,3 @@
-/Sliding Tile Puzzle/src/IDAsolver/src/test_ida.cpp
-improvements.txt
+/src/IDAsolver/src/test_ida.cpp
+node_modules/
+.next/
