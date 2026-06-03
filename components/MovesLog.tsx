@@ -11,11 +11,11 @@ export function MovesLog({ moves }: MovesLogProps) {
   const moveText = moves.map((move) => move.direction).join(',');
 
   return (
-    <div className="max-h-48 overflow-y-auto rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-800">
-      <div className="mb-3 text-xs font-medium text-gray-500 dark:text-gray-400">
-        MOVES LOG
+    <div className="max-h-48 overflow-y-auto">
+      <div className="mb-3 text-sm font-semibold text-gray-500 dark:text-gray-400">
+        Moves log
       </div>
-      <div className="whitespace-normal break-words rounded bg-gray-100 p-2 font-mono text-xs leading-relaxed text-gray-700 dark:bg-gray-950 dark:text-gray-300">
+      <div className="whitespace-normal break-words rounded-lg bg-gray-50 p-3 font-mono text-xs leading-relaxed text-gray-700 dark:bg-gray-900 dark:text-gray-300">
         {moveText || 'No moves yet'}
       </div>
     </div>

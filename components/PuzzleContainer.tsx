@@ -22,7 +22,7 @@ export function PuzzleContainer({
   return (
     <div className="mx-auto flex h-full min-h-0 w-full max-w-full items-center justify-center overflow-hidden">
       <div
-        className={`grid rounded-lg border border-gray-300 bg-gray-100 p-1.5 dark:border-gray-700 dark:bg-gray-900 sm:p-2 ${gapClass}`}
+        className={`grid rounded-lg bg-gray-50 p-1.5 dark:bg-gray-900 sm:p-2 ${gapClass}`}
         style={{
           aspectRatio: `${cols} / ${rows}`,
           maxHeight: boardMaxHeight,

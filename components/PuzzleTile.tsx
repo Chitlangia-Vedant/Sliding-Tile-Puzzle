@@ -26,7 +26,7 @@ export function PuzzleTile({
 
   if (number === null) {
     return (
-      <div className="min-h-0 min-w-0 rounded-lg bg-gray-100 shadow-inner dark:bg-gray-950" />
+      <div className="min-h-0 min-w-0 rounded-lg bg-gray-50 dark:bg-gray-900" />
     );
   }
 
@@ -39,10 +39,10 @@ export function PuzzleTile({
         font-bold tabular-nums transition-all duration-300 ease-in-out ${textSize}
         ${
           isCorrect
-            ? `border-2 border-primary-500 bg-white text-primary-500 glow-tile
-               dark:border-primary-500 dark:bg-gray-800 dark:text-primary-500`
-            : `border border-gray-300 bg-white text-gray-950 hover:bg-gray-100
-               dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700`
+            ? `border border-transparent bg-primary-500 text-white
+               dark:bg-primary-600 dark:text-white`
+            : `border border-gray-200 bg-white text-gray-950 hover:bg-gray-100
+               dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700`
         }
       `}
     >

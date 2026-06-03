@@ -1,6 +1,7 @@
 /src/IDAsolver/src/test_ida.cpp
 node_modules/
 .next/
+public/
 out/
 dist/
 build/

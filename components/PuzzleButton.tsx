@@ -20,8 +20,8 @@ export function PuzzleButton({
 
   const variantClasses =
     variant === 'primary'
-      ? 'bg-primary-500 text-gray-950 hover:bg-primary-600 dark:hover:bg-primary-600'
-      : 'border border-gray-300 bg-transparent text-gray-900 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-100 dark:hover:bg-gray-800';
+      ? 'bg-primary-500 text-white hover:bg-primary-600 dark:hover:bg-primary-600'
+      : 'bg-transparent text-gray-800 hover:bg-gray-100 dark:text-gray-100 dark:hover:bg-gray-900';
 
   return (
     <button

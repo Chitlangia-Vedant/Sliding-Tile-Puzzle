@@ -7,7 +7,7 @@ interface SidebarSectionProps {
 export function SidebarSection({ title, children, className = '' }: SidebarSectionProps) {
   return (
     <div className={className}>
-      <div className="text-xs text-gray-400 dark:text-gray-400 font-medium mb-3 uppercase tracking-wide">
+      <div className="mb-3 text-sm font-semibold text-gray-500 dark:text-gray-400">
         {title}
       </div>
       {children}

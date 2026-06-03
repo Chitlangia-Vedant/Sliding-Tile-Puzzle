@@ -6,6 +6,7 @@ import { GameControls } from '@/components/GameControls';
 import { GameHeader } from '@/components/GameHeader';
 import { GameSidebar } from '@/components/GameSidebar';
 import { PuzzleContainer } from '@/components/PuzzleContainer';
+import { SolvedDialog } from '@/components/SolvedDialog';
 import { useWasm } from '@/hooks/useWasm';
 import { clampDimension, createGame, readBoard, sleep } from '@/lib/puzzleBoard';
 import {
@@ -38,16 +39,66 @@ export default function Page() {
   const [running, setRunning] = useState(false);
   const [solving, setSolving] = useState(false);
   const [solvable, setSolvable] = useState(true);
+  const [runStarted, setRunStarted] = useState(false);
+  const [initialBoard, setInitialBoard] = useState<(number | null)[]>([]);
+  const [solverUsed, setSolverUsed] = useState(false);
+  const [solvedDialogOpen, setSolvedDialogOpen] = useState(false);
+  const [solvedDialogDismissed, setSolvedDialogDismissed] = useState(false);
+  const [solvedSummary, setSolvedSummary] = useState<{
+    elapsedSeconds: number;
+    moves: MoveEntry[];
+    initialBoard: (number | null)[];
+    cols: number;
+    solverUsed: boolean;
+  } | null>(null);
 
   const idaAvailable = idaSolverRef.current.isAvailable(rows, cols);
+  const boardMaxHeight = 'calc(100dvh - 9rem)';
+  const boardFrameStyle = {
+    maxWidth: '100%',
+    width: `min(100%, calc(${boardMaxHeight} * ${cols} / ${rows}))`,
+  };
+  const chromeFrameStyle = {
+    maxWidth: '100%',
+    width: 'min(100%, 36rem)',
+  };
 
   const clearRunState = useCallback(() => {
     setMoves([]);
     setElapsedSeconds(0);
     setRunning(false);
+    setRunStarted(false);
+    setInitialBoard([]);
+    setSolverUsed(false);
+    setSolvedDialogOpen(false);
+    setSolvedDialogDismissed(false);
+    setSolvedSummary(null);
     moveDirectionsRef.current = [];
     moveIdRef.current = 0;
   }, []);
+
+  const startShuffledRun = useCallback(
+    (game: WebGame) => {
+      game.shuffle(shuffleMoves);
+      clearRunState();
+
+      const shuffledTiles = readBoard(game, rows, cols);
+      const correctTileVector = game.getCorrectTiles?.();
+      const nextCorrectTiles = correctTileVector
+        ? new Set(vectorToArray(correctTileVector))
+        : new Set<number>();
+
+      (correctTileVector as { delete?: () => void })?.delete?.();
+
+      setTiles(shuffledTiles);
+      setCorrectTiles(nextCorrectTiles);
+      setSolvable(game.isSolvable());
+      setInitialBoard(shuffledTiles);
+      setRunStarted(true);
+      setRunning(true);
+    },
+    [clearRunState, cols, rows],
+  );
 
   const syncTiles = useCallback(() => {
     if (!gameRef.current) return;
@@ -94,14 +145,7 @@ export default function Page() {
 
     const nextGame = createGame(wasmModule, rows, cols);
     gameRef.current = nextGame;
-    setTiles(readBoard(nextGame, rows, cols));
-
-    const correctTileVector = nextGame.getCorrectTiles?.();
-    setCorrectTiles(correctTileVector ? new Set(vectorToArray(correctTileVector)) : new Set());
-    (correctTileVector as { delete?: () => void })?.delete?.();
-
-    setSolvable(nextGame.isSolvable());
-    clearRunState();
+    startShuffledRun(nextGame);
 
     return () => {
       nextGame.delete?.();
@@ -109,7 +153,7 @@ export default function Page() {
         gameRef.current = null;
       }
     };
-  }, [clearRunState, cols, rows, wasmModule]);
+  }, [cols, rows, startShuffledRun, wasmModule]);
 
   useEffect(() => {
     if (!running) return;
@@ -120,6 +164,40 @@ export default function Page() {
 
     return () => window.clearInterval(intervalId);
   }, [running]);
+
+  useEffect(() => {
+    if (
+      !runStarted ||
+      moves.length === 0 ||
+      solving ||
+      solvedDialogOpen ||
+      solvedDialogDismissed ||
+      !gameRef.current?.isSolved()
+    ) {
+      return;
+    }
+
+    setRunning(false);
+    setSolvedSummary({
+      elapsedSeconds,
+      moves,
+      initialBoard,
+      cols,
+      solverUsed,
+    });
+    setSolvedDialogOpen(true);
+  }, [
+    cols,
+    elapsedSeconds,
+    initialBoard,
+    moves,
+    runStarted,
+    solvedDialogDismissed,
+    solvedDialogOpen,
+    solverUsed,
+    solving,
+    tiles,
+  ]);
 
   useEffect(() => {
     const keyDirections: Record<string, number> = {
@@ -161,10 +239,7 @@ export default function Page() {
   const handleShuffle = () => {
     if (!gameRef.current || solving) return;
 
-    gameRef.current.shuffle(shuffleMoves);
-    syncTiles();
-    clearRunState();
-    setRunning(true);
+    startShuffledRun(gameRef.current);
   };
 
   const handleReset = () => {
@@ -227,6 +302,7 @@ export default function Page() {
 
     setSolving(true);
     setRunning(true);
+    setSolverUsed(true);
 
     try {
       const solution = getSolution();
@@ -296,7 +372,8 @@ export default function Page() {
             movesCount={moves.length}
             sidebarOpen={sidebarOpen}
             shuffleDisabled={!gameRef.current || wasmLoading || solving}
-            onOpenSidebar={() => setSidebarOpen(true)}
+            frameStyle={chromeFrameStyle}
+            onOpenSidebar={() => setSidebarOpen((isOpen) => !isOpen)}
             onShuffle={handleShuffle}
           />
 
@@ -315,6 +392,7 @@ export default function Page() {
                 cols={cols}
                 solving={solving}
                 solveDisabled={!gameRef.current || wasmLoading || solving || !solvable}
+                frameStyle={chromeFrameStyle}
                 onRowsChange={(value) => setRows(clampDimension(value))}
                 onColsChange={(value) => setCols(clampDimension(value))}
                 onSolve={handleSolve}
@@ -329,6 +407,20 @@ export default function Page() {
           </div>
         </section>
       </div>
+
+      <SolvedDialog
+        open={solvedDialogOpen}
+        elapsedSeconds={solvedSummary?.elapsedSeconds ?? elapsedSeconds}
+        moves={solvedSummary?.moves ?? moves}
+        initialBoard={solvedSummary?.initialBoard ?? initialBoard}
+        cols={solvedSummary?.cols ?? cols}
+        solverUsed={solvedSummary?.solverUsed ?? solverUsed}
+        onClose={() => {
+          setSolvedDialogDismissed(true);
+          setSolvedDialogOpen(false);
+        }}
+        onNewGame={handleShuffle}
+      />
     </main>
   );
 }

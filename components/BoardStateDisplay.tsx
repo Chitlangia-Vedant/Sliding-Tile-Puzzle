@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 interface BoardStateDisplayProps {
   tiles: (number | null)[];
@@ -75,6 +75,7 @@ export function BoardStateDisplay({
   onApply,
 }: BoardStateDisplayProps) {
   const formattedBoard = useMemo(() => formatBoardState(tiles, cols), [cols, tiles]);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const [value, setValue] = useState(formattedBoard);
   const [error, setError] = useState<string | null>(null);
 
@@ -82,6 +83,13 @@ export function BoardStateDisplay({
     setValue(formattedBoard);
     setError(null);
   }, [formattedBoard]);
+
+  useLayoutEffect(() => {
+    if (!textareaRef.current) return;
+
+    textareaRef.current.style.height = 'auto';
+    textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+  }, [value]);
 
   const handleApply = () => {
     const parsed = parseBoardState(value, rows, cols);
@@ -98,6 +106,7 @@ export function BoardStateDisplay({
   return (
     <div className="space-y-2">
       <textarea
+        ref={textareaRef}
         value={value}
         onChange={(event) => {
           setValue(event.target.value);
@@ -105,7 +114,7 @@ export function BoardStateDisplay({
         }}
         disabled={disabled}
         spellCheck={false}
-        className="h-28 w-full resize-none rounded-sm border border-gray-300 bg-gray-100 p-3 font-mono text-xs text-gray-800 transition-colors focus:border-primary-500 focus:ring-primary-500 dark:border-gray-800 dark:bg-gray-950 dark:text-gray-300"
+        className="min-h-28 w-full resize-none overflow-hidden rounded-lg border-0 bg-gray-50 p-3 font-mono text-xs text-gray-800 transition-colors focus:ring-2 focus:ring-primary-300 dark:bg-gray-900 dark:text-gray-300"
       />
       <div className="flex items-center justify-between gap-2">
         <span className="min-h-4 text-xs text-red-600 dark:text-red-400">{error}</span>
@@ -113,7 +122,7 @@ export function BoardStateDisplay({
           type="button"
           onClick={handleApply}
           disabled={disabled}
-          className="rounded-lg border border-gray-300 px-3 py-1 text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:text-gray-100 dark:hover:bg-gray-800"
+          className="rounded-lg px-3 py-1 text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50 dark:text-gray-100 dark:hover:bg-gray-900"
         >
           Apply
         </button>
