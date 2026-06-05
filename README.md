@@ -1,178 +1,204 @@
-# Slido - Sliding Tile Puzzle Game
+# Sliding-Tile-Puzzle
 
-Interactive sliding tile puzzle game built with React/Next.js and integrated with C++ solver via WebAssembly.
+> Interactive sliding tile puzzle game with a C++ WebAssembly solver.
 
-## Project Structure
+![GitHub stars](https://img.shields.io/github/stars/Chitlangia-Vedant/Sliding-Tile-Puzzle?style=for-the-badge&logo=github) ![GitHub forks](https://img.shields.io/github/forks/Chitlangia-Vedant/Sliding-Tile-Puzzle?style=for-the-badge&logo=github) ![GitHub issues](https://img.shields.io/github/issues/Chitlangia-Vedant/Sliding-Tile-Puzzle?style=for-the-badge&logo=github) ![Last commit](https://img.shields.io/github/last-commit/Chitlangia-Vedant/Sliding-Tile-Puzzle?style=for-the-badge&logo=github) ![Next.js](https://img.shields.io/badge/Next.js-000000?style=for-the-badge&logo=nextdotjs&logoColor=white) ![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white) ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
 
-```
-├── app/
-│   ├── layout.tsx          # Root layout
-│   ├── page.tsx            # Main puzzle game interface
-│   └── globals.css         # Global styles and Tailwind directives
-├── components/
-│   ├── PuzzleButton.tsx    # Reusable button component
-│   ├── PuzzleTile.tsx      # Individual puzzle tile
-│   ├── PuzzleContainer.tsx # Grid layout for tiles
-│   ├── Counter.tsx         # Time/Moves display
-│   ├── MovesLog.tsx        # Recent moves log
-│   ├── BoardStateDisplay.tsx # Board state code block
-│   └── SidebarSection.tsx  # Sidebar section wrapper
-├── hooks/
-│   └── useWasm.ts          # WASM loader hook
-├── public/
-│   ├── game.js             # Emscripten-generated JS
-│   ├── game.wasm           # Compiled WebAssembly module
-│   └── game.data           # WASM data file
-├── package.json
-├── next.config.js
-├── tailwind.config.js
-└── tsconfig.json
-```
+## 📑 Table of Contents
 
-## Setup
+- [Description](#description)
+- [Key Features](#key-features)
+- [Use Cases](#use-cases)
+- [Tech Stack](#tech-stack)
+- [Quick Start](#quick-start)
+- [Environment Variables](#environment-variables)
+- [Key Dependencies](#key-dependencies)
+- [Available Scripts](#available-scripts)
+- [Project Structure](#project-structure)
+- [Development Setup](#development-setup)
+- [Contributing](#contributing)
 
-### 1. Install Dependencies
+## 📝 Description
+
+Slido is an interactive sliding tile puzzle game designed to demonstrate high-performance client-side computation in web browsers. Built with Next.js, TypeScript, and Tailwind CSS, the application provides a sleek user interface for manipulating puzzle grids, tracking moves, logging sequential steps, and displaying board states dynamically.
+
+## ✨ Key Features
+
+- **⚙️ High-Performance C++ Solver** — Executes complex puzzle-solving algorithms directly in the browser by loading a compiled WebAssembly solver module.
+- **🪝 React Hook WASM Loader** — Uses a custom useWasm React hook to asynchronously load and initialize Emscripten-generated JS and WASM assets.
+- **🔲 Interactive Grid Layout** — Renders customizable grid tiles, manages real-time moves tracking, and runs timed games via dedicated UI components.
+- **🌙 Persistent Dark Mode** — Includes a pre-rendered, local-storage-synchronized dark theme toggle directly embedded in the root document layout.
+- **🛠️ Integrated C++ Compilation** — Provides a system Makefile alongside standard npm scripts to easily compile and clean native solver binaries.
+
+## 🎯 Use Cases
+
+- Integrating and executing Emscripten-compiled C++ logic inside a modern Next.js frontend application.
+- Studying client-side pathfinding algorithms like sliding tile puzzles using a high-performance WebAssembly module.
+- Building and testing responsive tile grid layouts with reactive keyboard or click controls in React.
+
+## 🛠️ Tech Stack
+
+- ▲ **Next.js**
+- 🌬️ **Tailwind CSS**
+- 📘 **TypeScript**
+
+## ⚡ Quick Start
 
 ```bash
+
+# 1. Clone the repository
+git clone https://github.com/Chitlangia-Vedant/Sliding-Tile-Puzzle.git
+
+# 2. Install dependencies
 npm install
-```
 
-### 2. Start Development Server
+# 3. Configure environment
+cp .env.example .env   # then fill in the values
 
-```bash
+# 4. Start the dev server
 npm run dev
 ```
 
-The app will be available at `http://localhost:3000`
+## 🔑 Environment Variables
 
-### 3. Build for Production
+The following environment variables are required (see `.env.example`):
 
 ```bash
-npm run build
-npm start
+NEXT_PUBLIC_WASM_PATH=
+NEXT_PUBLIC_API_URL=
 ```
 
-## Integration with C++ Solver
+## 📦 Key Dependencies
 
-Your WASM module is already in the `public/` folder (`game.js`, `game.wasm`, `game.data`).
-
-### Loading the WASM Module
-
-The `useWasm` hook in `hooks/useWasm.ts` handles loading the Emscripten-generated module:
-
-```typescript
-const { module: wasmModule, loading, error } = useWasm('/game.js');
+```
+react: ^18.3.1
+react-dom: ^18.3.1
+next: ^15.5.18
+lucide-react: ^0.447.0
+tailwindcss: ^3.4.17
 ```
 
-### Calling WASM Functions
+## 🚀 Available Scripts
 
-Once the module is loaded, you can call your C++ functions exposed via Emscripten:
+- **dev** — `npm run dev`
+- **build** — `npm run build`
+- **start** — `npm run start`
+- **lint** — `npm run lint`
+- **all** — `make all`
+- **clean** — `make clean`
 
-```typescript
-const handleSolve = () => {
-  if (!wasmModule) return;
-  
-  // Call your C++ solver function
-  // Example: const solution = wasmModule.solve_puzzle(tiles, rows, cols);
-  
-  console.log('WASM module:', wasmModule);
-};
+## 📁 Project Structure
+
+```
+.
+├── .env.example
+├── Makefile
+├── app
+│   ├── globals.css
+│   ├── layout.tsx
+│   └── page.tsx
+├── components
+│   ├── BoardStateDisplay.tsx
+│   ├── Counter.tsx
+│   ├── GameControls.tsx
+│   ├── GameHeader.tsx
+│   ├── GameSidebar.tsx
+│   ├── MovesLog.tsx
+│   ├── PuzzleButton.tsx
+│   ├── PuzzleContainer.tsx
+│   ├── PuzzleTile.tsx
+│   ├── SidebarSection.tsx
+│   ├── SolvedDialog.tsx
+│   └── ThemeSwitch.tsx
+├── hooks
+│   └── useWasm.ts
+├── lib
+│   ├── puzzleBoard.ts
+│   ├── puzzleConfig.ts
+│   ├── puzzleTypes.ts
+│   └── wasmVectors.ts
+├── next-env.d.ts
+├── next.config.js
+├── package.json
+├── postcss.config.js
+├── public
+│   ├── game.data
+│   ├── game.js
+│   └── game.wasm
+├── solvers
+│   ├── FringeSolver.ts
+│   └── IdaSolver.ts
+├── src
+│   ├── IDAsolver
+│   │   ├── database
+│   │   │   ├── 3-wd.dat
+│   │   │   ├── 4-wd.dat
+│   │   │   ├── 443-reg
+│   │   │   ├── 443-reg-0.dat
+│   │   │   ├── 443-reg-1.dat
+│   │   │   ├── 443-reg-2.dat
+│   │   │   ├── 555-reg
+│   │   │   ├── 555-reg-0.dat
+│   │   │   ├── 555-reg-1.dat
+│   │   │   ├── 555-reg-2.dat
+│   │   │   ├── 8-reg
+│   │   │   └── 8-reg-0.dat
+│   │   ├── include
+│   │   │   ├── DisjointDatabase.h
+│   │   │   ├── Idastar.h
+│   │   │   ├── Pattern.h
+│   │   │   ├── SearchNode.h
+│   │   │   ├── SearchNodeRect.h
+│   │   │   ├── Util.h
+│   │   │   └── WalkingDistance.h
+│   │   └── src
+│   │       ├── DisjointDatabase.cpp
+│   │       ├── Idastar.cpp
+│   │       ├── Pattern.cpp
+│   │       ├── SearchNode.cpp
+│   │       ├── SearchNodeRect.cpp
+│   │       ├── Util.cpp
+│   │       └── WalkingDistance.cpp
+│   ├── core
+│   │   ├── Board.cpp
+│   │   ├── Board.h
+│   │   ├── Direction.cpp
+│   │   ├── Direction.h
+│   │   ├── Logger.h
+│   │   ├── Point.cpp
+│   │   ├── Point.h
+│   │   ├── Random.h
+│   │   ├── Tile.cpp
+│   │   └── Tile.h
+│   ├── solver
+│   │   ├── Solver.cpp
+│   │   └── Solver.h
+│   └── wasm
+│       ├── IdaBridge.cpp
+│       ├── IdaBridge.h
+│       └── WebGame.cpp
+├── tailwind.config.js
+├── tsconfig.json
+└── tsconfig.tsbuildinfo
 ```
 
-### Common Emscripten Functions
+## 🛠️ Development Setup
 
-If you used `emscripten_bind` in your C++ code, your functions are available as:
+### Node.js / JavaScript
+1. Install Node.js (v18+ recommended)
+2. Install dependencies: `npm install` (or `yarn` / `pnpm install` / `bun install`)
+3. Start the dev server: see the **Quick Start** above
 
-```typescript
-wasmModule.solve_puzzle(...)
-wasmModule.is_solvable(...)
-wasmModule.get_solution(...)
-// etc.
-```
+## 👥 Contributing
 
-If you used `ccall` or `cwrap`, use:
+Contributions are welcome! Here's the standard flow:
 
-```typescript
-const result = wasmModule.ccall('function_name', 'return_type', 
-  ['param_type1', 'param_type2'], 
-  [param1, param2]);
-```
+1. **Fork** the repository
+2. **Clone** your fork: `git clone https://github.com/Chitlangia-Vedant/Sliding-Tile-Puzzle.git`
+3. **Branch**: `git checkout -b feature/your-feature`
+4. **Commit**: `git commit -m 'feat: add some feature'`
+5. **Push**: `git push origin feature/your-feature`
+6. **Open** a pull request
 
-## Features
+Please follow the existing code style and include tests for new behavior where applicable.
 
-✅ **Interactive UI** - Responsive puzzle game with dark/light mode  
-✅ **WASM Integration** - Ready to connect C++ solver functions  
-✅ **Component-Based** - Modular, reusable components  
-✅ **Tailwind CSS** - Modern styling with design tokens  
-✅ **Dark Mode** - Full theme support  
-✅ **Responsive** - Desktop and mobile friendly  
-
-## Customization
-
-### Add Dark Mode Toggle
-
-Add a theme switch component to `app/page.tsx`:
-
-```typescript
-import { ThemeSwitch } from '@/components/ThemeSwitch';
-
-// In your JSX:
-<ThemeSwitch />
-```
-
-### Modify Colors
-
-Edit `tailwind.config.js` to change the primary/secondary colors:
-
-```javascript
-colors: {
-  primary: {
-    500: '#4ade80', // Change this
-    // ...
-  },
-}
-```
-
-### Update Puzzle Size
-
-The puzzle grid size is controlled by `rows` and `cols` state:
-
-```typescript
-const [rows, setRows] = useState(3);
-const [cols, setCols] = useState(3);
-```
-
-## Next Steps
-
-1. **Connect the Solver**: Update `handleSolve()` in `app/page.tsx` to call your WASM functions
-2. **Add Tile Logic**: Implement tile swap logic that calls your WASM module
-3. **Test Integration**: Verify WASM module loads correctly (check browser console)
-4. **Deploy**: Build and deploy the frontend alongside your WASM files
-
-## Debugging WASM
-
-Open browser DevTools and check:
-1. Network tab - verify `game.js`, `game.wasm`, `game.data` load
-2. Console - check for errors
-3. Application tab - inspect loaded WASM module
-
-```typescript
-// Add to your page component for debugging:
-useEffect(() => {
-  if (wasmModule) {
-    console.log('WASM Module loaded:', wasmModule);
-    console.log('Available functions:', Object.keys(wasmModule));
-  }
-}, [wasmModule]);
-```
-
-## Resources
-
-- [Emscripten Docs](https://emscripten.org/docs/)
-- [Next.js Docs](https://nextjs.org/docs)
-- [WebAssembly MDN](https://developer.mozilla.org/en-US/docs/WebAssembly)
-- [React Hooks](https://react.dev/reference/react)
-
-## License
-
-MIT
