@@ -219,6 +219,6 @@ This project builds upon the research, algorithms, and tutorials of the followin
 
 ---
 
-## License
+Please follow the existing code style and include tests for new behavior where applicable.
 
 This project is open-source and available under the [MIT License](LICENSE). Copyright (c) 2026 Vedant Chitlangia.
