@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="assets/Logo.png" alt="Sliding Tile Puzzle Logo" width="120" />
+  <img src="app/icon.png" alt="Sliding Tile Puzzle Logo" width="120" />
 
   <h1>Sliding Tile Puzzle </h1>
 
